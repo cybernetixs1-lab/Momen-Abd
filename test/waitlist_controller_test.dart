@@ -18,6 +18,28 @@ class FakeWaitlistRepository implements WaitlistRepository {
     this.entries = List.of(entries);
     this.nextTicketNumber = nextTicketNumber;
   }
+ 
+  test('does not publish a party when persistence fails', () async {
+    final repository = FailingWaitlistRepository();
+    final controller = WaitlistController(repository);
+    await controller.load();
+
+    expect(
+      await controller.addParty(name: 'Alice', partySize: 2),
+      isFalse,
+    );
+    expect(controller.entries, isEmpty);
+  });
+}
+
+
+
+
+class FailingWaitlistRepository extends FakeWaitlistRepository {
+  @override
+  Future<void> save(List<WaitlistEntry> entries, int nextTicketNumber) async {
+    throw StateError('storage unavailable');
+  }
 }
 
 void main() {
