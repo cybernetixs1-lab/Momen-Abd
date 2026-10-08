@@ -33,7 +33,6 @@ class WaitlistController extends ChangeNotifier {
       );
       if (_nextTicketNumber <= maxTicket) {
         _nextTicketNumber = maxTicket + 1;
-        await _repository.save(_entries, _nextTicketNumber);
       }
     } catch (_) {
       _entries = const [];
