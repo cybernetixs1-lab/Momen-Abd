@@ -11,10 +11,12 @@ class WaitlistController extends ChangeNotifier {
   List<WaitlistEntry> _entries = const [];
   int _nextTicketNumber = 1;
   bool _isLoading = true;
+  bool _isMutating = false;
   String? _errorMessage;
 
   List<WaitlistEntry> get entries => List.unmodifiable(_entries);
   bool get isLoading => _isLoading;
+  bool get isMutating => _isMutating;
   String? get errorMessage => _errorMessage;
 
   Future<void> load() async {
@@ -48,7 +50,7 @@ class WaitlistController extends ChangeNotifier {
     required int partySize,
   }) async {
     final trimmedName = name.trim();
-    if (trimmedName.isEmpty || partySize <= 0) return false;
+    if (_isMutating || trimmedName.isEmpty || partySize <= 0) return false;
 
     final entry = WaitlistEntry(
       ticketNumber: _nextTicketNumber,
@@ -58,37 +60,45 @@ class WaitlistController extends ChangeNotifier {
 
     final updatedEntries = [..._entries, entry];
 
+    _isMutating = true;
+    _errorMessage = null;
+    notifyListeners();
     try {
       await _repository.save(updatedEntries, _nextTicketNumber + 1);
       _entries = updatedEntries;
       _nextTicketNumber++;
-      _errorMessage = null;
-      notifyListeners();
       return true;
     } catch (_) {
       _errorMessage = 'Could not save the new party.';
-      notifyListeners();
       return false;
+    } finally {
+      _isMutating = false;
+      notifyListeners();
     }
   }
 
   Future<bool> removeParty(int ticketNumber) async {
+    if (_isMutating) return false;
+
     final updatedEntries = _entries
         .where((entry) => entry.ticketNumber != ticketNumber)
         .toList(growable: false);
 
     if (updatedEntries.length == _entries.length) return false;
 
+    _isMutating = true;
+    _errorMessage = null;
+    notifyListeners();
     try {
       await _repository.save(updatedEntries, _nextTicketNumber);
       _entries = updatedEntries;
-      _errorMessage = null;
-      notifyListeners();
       return true;
     } catch (_) {
       _errorMessage = 'Could not remove the party.';
-      notifyListeners();
       return false;
+    } finally {
+      _isMutating = false;
+      notifyListeners();
     }
   }
 }

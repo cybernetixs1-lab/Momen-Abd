@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:restaurant_waitlist/features/waitlist/application/waitlist_controller.dart';
 import 'package:restaurant_waitlist/features/waitlist/domain/entities/waitlist_entry.dart';
@@ -6,6 +8,7 @@ import 'package:restaurant_waitlist/features/waitlist/domain/repositories/waitli
 class FakeWaitlistRepository implements WaitlistRepository {
   List<WaitlistEntry> entries = [];
   int nextTicketNumber = 1;
+  Completer<void>? saveGate;
 
   @override
   Future<List<WaitlistEntry>> loadEntries() async => List.of(entries);
@@ -18,10 +21,10 @@ class FakeWaitlistRepository implements WaitlistRepository {
     List<WaitlistEntry> entries,
     int nextTicketNumber,
   ) async {
+    await saveGate?.future;
     this.entries = List.of(entries);
     this.nextTicketNumber = nextTicketNumber;
   }
-
 }
 
 class FailingWaitlistRepository extends FakeWaitlistRepository {
@@ -110,6 +113,21 @@ void main() {
     expect(reopened.entries.last.ticketNumber, 3);
   });
 
+  test('continues ticket numbering after an empty queue is restored', () async {
+    final repository = FakeWaitlistRepository();
+    final first = WaitlistController(repository);
+    await first.load();
+    await first.addParty(name: 'Alice', partySize: 2);
+    await first.removeParty(1);
+
+    final reopened = WaitlistController(repository);
+    await reopened.load();
+
+    expect(reopened.entries, isEmpty);
+    expect(await reopened.addParty(name: 'Bob', partySize: 2), isTrue);
+    expect(reopened.entries.single.ticketNumber, 2);
+  });
+
   test('recovers a stale persisted counter without reusing a ticket', () async {
     final repository = FakeWaitlistRepository()
       ..entries = [
@@ -135,6 +153,7 @@ void main() {
       isFalse,
     );
     expect(controller.entries, isEmpty);
+    expect(controller.errorMessage, 'Could not save the new party.');
   });
 
   test('does not publish a removal when persistence fails', () async {
@@ -151,5 +170,41 @@ void main() {
 
     expect(await reopened.removeParty(1), isFalse);
     expect(reopened.entries.map((e) => e.ticketNumber), [1]);
+    expect(reopened.errorMessage, 'Could not remove the party.');
+  });
+
+  test('rejects a concurrent add while the first save is pending', () async {
+    final repository = FakeWaitlistRepository();
+    final controller = WaitlistController(repository);
+    await controller.load();
+    final saveGate = Completer<void>();
+    repository.saveGate = saveGate;
+
+    final firstAdd = controller.addParty(name: 'Alice', partySize: 2);
+    expect(controller.isMutating, isTrue);
+    expect(await controller.addParty(name: 'Bob', partySize: 2), isFalse);
+
+    saveGate.complete();
+    expect(await firstAdd, isTrue);
+    expect(controller.entries.map((entry) => entry.ticketNumber), [1]);
+    expect(repository.nextTicketNumber, 2);
+    expect(controller.isMutating, isFalse);
+  });
+
+  test('removing first, middle, and last preserves remaining FIFO order',
+      () async {
+    final repository = FakeWaitlistRepository();
+    final controller = WaitlistController(repository);
+    await controller.load();
+    await controller.addParty(name: 'Alice', partySize: 2);
+    await controller.addParty(name: 'Bob', partySize: 2);
+    await controller.addParty(name: 'Cara', partySize: 2);
+    await controller.addParty(name: 'Dan', partySize: 2);
+
+    expect(await controller.removeParty(1), isTrue);
+    expect(await controller.removeParty(3), isTrue);
+    expect(await controller.removeParty(4), isTrue);
+    expect(controller.entries.map((entry) => entry.ticketNumber), [2]);
+    expect(repository.entries.map((entry) => entry.ticketNumber), [2]);
   });
 }
