@@ -131,14 +131,27 @@ class WaitlistTile extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({this.errorMessage});
+  const _EmptyState({this.errorMessage, this.onRetry});
   final String? errorMessage;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) => Center(
     child: Padding(
       padding: const EdgeInsets.all(24),
-      child: Text(errorMessage ?? 'No parties are currently waiting.', textAlign: TextAlign.center),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            errorMessage ?? 'No parties are currently waiting.',
+            textAlign: TextAlign.center,
+          ),
+          if (onRetry != null) ...[
+            const SizedBox(height: 12),
+            OutlinedButton(onPressed: onRetry, child: const Text('Retry')),
+          ],
+        ],
+      ),
     ),
   );
 }
