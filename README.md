@@ -4,48 +4,61 @@ A small Flutter app for restaurant staff to manage a first-in, first-out waitlis
 
 ## Run on an Android emulator
 
-Prerequisites: Flutter SDK and Android tooling installed, plus an Android emulator.
+Prerequisites: Flutter SDK, Android tooling, and an Android emulator.
 
 1. Clone this repository.
 2. Run `flutter pub get`.
 3. Start an Android emulator.
 4. Run `flutter run` from the repository root.
 
-No code changes or backend configuration are required.
+For a clean checkout, the repository should contain the generated Flutter Android project files; no application-code changes or backend configuration are required.
 
 ## Technology and storage
 
-I chose Flutter because it provides a fast, cross-platform UI while keeping the MVP small and easy to run on Android. I chose `shared_preferences` because this app stores a small amount of local, non-relational state and does not need a queryable database.
+I chose Flutter because it gives a small, cross-platform codebase while being quick to develop and run on an Android emulator. I chose SharedPreferences because the MVP stores a small amount of local, non-relational state and does not need queries, relationships, or a backend.
 
 ## Architecture
 
-- **domain**: waitlist model and repository contract.
-- **data**: local SharedPreferences implementation.
-- **application**: controller containing validation and business rules.
-- **presentation**: Flutter widgets in `lib/main.dart` for this intentionally small MVP.
+```
+presentation -> application -> domain <- data
+```
 
-The repository abstraction keeps storage replaceable if the app later grows to require SQLite/Drift or another persistence layer.
+- **domain**: waitlist entity and repository contract.
+- **data**: SharedPreferences implementation and JSON serialization.
+- **application**: controller containing validation, ticket numbering, persistence sequencing, and mutation rules.
+- **presentation**: Flutter widgets that render controller state and collect staff input.
+
+The repository abstraction keeps storage replaceable if the app later grows to need a queryable local database. No state-management package is used because a single `ChangeNotifier` is sufficient for this small state surface.
 
 ## Complete
 
 - Add a party with a non-empty name and positive whole-number size.
-- Assign a unique, never-reused ticket number.
+- Assign a unique ticket number that is never reused.
 - Append parties in arrival order.
-- Show how many waiting parties are ahead.
-- Remove any party and immediately recalculate positions.
+- Show the number of waiting parties ahead.
+- Remove any waiting party and immediately recalculate positions.
 - Persist the active waitlist and next ticket number across app restarts.
-- Unit tests cover the core business rules.
+- Handle persistence failures without publishing an unpersisted state change.
+- Unit tests cover the core business rules and failure paths.
 
 ## Not included
 
-Optional extras (editing, undo, history, estimated wait time) are intentionally not included because the core requirements take priority.
+The optional extras—editing, undo, removal history, and estimated waiting time—are intentionally not included because the core requirements take priority within the time limit.
 
-## Verification / AI suggestion check
+Backend services, accounts, customer-facing features, notifications, multi-branch support, and app-store publishing are also out of scope.
 
-AI suggested using a local key-value store and separating persistence behind a repository interface. I checked that decision against the requirements: the data set is small, there are no queries or relationships, and only the current list plus the next ticket counter must survive restarts, so SharedPreferences is sufficient for this MVP.
+## Verification
 
-I also checked the ticket rule manually: add tickets 1, 2, 3; remove 2; add another party; the new ticket must be 4 and the remaining list must be 1, 3, 4.
+The important manual cases are:
 
-## Notes
+1. Add three parties and verify tickets `1, 2, 3` and positions `0, 1, 2`.
+2. Remove ticket `2`; verify the remaining tickets are `1, 3` and the second remaining party has one party ahead.
+3. Add another party; verify it receives ticket `4`, not `2`.
+4. Fully close and reopen the app; verify the active queue remains and the next ticket continues.
+5. Try an empty name, zero/negative size, and non-integer size; each must be rejected.
 
-There is intentionally no backend, authentication, customer app, notification system, or multi-branch support because those are out of scope.
+## AI suggestion check
+
+AI suggested using a local key-value store and separating persistence behind a repository interface. I checked that suggestion against the requirements: the data is small, there are no queries or relationships, and only the current queue plus the next ticket counter must survive restarts, so SharedPreferences is appropriate for this MVP.
+
+I also checked the ticket-numbering suggestion manually with tickets `1, 2, 3`: after removing `2`, adding a new party must produce `4`, proving removed tickets are never reused.
