@@ -21,6 +21,21 @@ class FakeWaitlistRepository implements WaitlistRepository {
     this.entries = List.of(entries);
     this.nextTicketNumber = nextTicketNumber;
   }
+
+  test('recovers a stale persisted counter without reusing a ticket', () async {
+    final repository = FakeWaitlistRepository()
+      ..entries = [
+        const WaitlistEntry(ticketNumber: 4, name: 'Existing', partySize: 2),
+      ]
+      ..nextTicketNumber = 2;
+
+    final controller = WaitlistController(repository);
+    await controller.load();
+
+    expect(await controller.addParty(name: 'New', partySize: 2), isTrue);
+    expect(controller.entries.map((e) => e.ticketNumber), [4, 5]);
+    expect(repository.nextTicketNumber, 6);
+  });
 }
 
 class FailingWaitlistRepository extends FakeWaitlistRepository {
