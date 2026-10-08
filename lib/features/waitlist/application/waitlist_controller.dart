@@ -19,14 +19,24 @@ class WaitlistController extends ChangeNotifier {
   int _nextTicketNumber = 1;
   bool _isLoading = true;
   bool _isMutating = false;
+  bool _hasLoadError = false;
   String? _errorMessage;
   RemovedWaitlistParty? _lastRemoval;
 
   List<WaitlistEntry> get entries => List.unmodifiable(_entries);
   bool get isLoading => _isLoading;
   bool get isMutating => _isMutating;
+  bool get hasLoadError => _hasLoadError;
   String? get errorMessage => _errorMessage;
   RemovedWaitlistParty? get lastRemoval => _lastRemoval;
+
+  String? validateName(String name) =>
+      name.trim().isEmpty ? 'Name is required.' : null;
+
+  String? validatePartySize(int? partySize) =>
+      partySize == null || partySize < 1
+          ? 'Enter a whole number greater than 0.'
+          : null;
 
   Future<void> load() async {
     _isLoading = true;
@@ -36,6 +46,7 @@ class WaitlistController extends ChangeNotifier {
     try {
       _entries = await _repository.loadEntries();
       _nextTicketNumber = await _repository.loadNextTicketNumber();
+      _hasLoadError = false;
 
       final maxTicket = _entries.fold<int>(
         0,
@@ -47,6 +58,7 @@ class WaitlistController extends ChangeNotifier {
     } catch (_) {
       _entries = const [];
       _nextTicketNumber = 1;
+      _hasLoadError = true;
       _errorMessage = 'Could not load the saved waitlist. Please retry.';
     } finally {
       _isLoading = false;
@@ -59,7 +71,11 @@ class WaitlistController extends ChangeNotifier {
     required int partySize,
   }) async {
     final trimmedName = name.trim();
-    if (_isMutating || trimmedName.isEmpty || partySize <= 0) return false;
+    if (_isMutating ||
+        validateName(trimmedName) != null ||
+        validatePartySize(partySize) != null) {
+      return false;
+    }
 
     final entry = WaitlistEntry(
       ticketNumber: _nextTicketNumber,
