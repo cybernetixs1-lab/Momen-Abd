@@ -22,20 +22,6 @@ class FakeWaitlistRepository implements WaitlistRepository {
     this.nextTicketNumber = nextTicketNumber;
   }
 
-  test('recovers a stale persisted counter without reusing a ticket', () async {
-    final repository = FakeWaitlistRepository()
-      ..entries = [
-        const WaitlistEntry(ticketNumber: 4, name: 'Existing', partySize: 2),
-      ]
-      ..nextTicketNumber = 2;
-
-    final controller = WaitlistController(repository);
-    await controller.load();
-
-    expect(await controller.addParty(name: 'New', partySize: 2), isTrue);
-    expect(controller.entries.map((e) => e.ticketNumber), [4, 5]);
-    expect(repository.nextTicketNumber, 6);
-  });
 }
 
 class FailingWaitlistRepository extends FakeWaitlistRepository {
@@ -120,6 +106,21 @@ void main() {
     expect(reopened.entries.map((e) => e.ticketNumber), [2]);
     expect(await reopened.addParty(name: 'Cara', partySize: 3), isTrue);
     expect(reopened.entries.last.ticketNumber, 3);
+  });
+
+  test('recovers a stale persisted counter without reusing a ticket', () async {
+    final repository = FakeWaitlistRepository()
+      ..entries = [
+        const WaitlistEntry(ticketNumber: 4, name: 'Existing', partySize: 2),
+      ]
+      ..nextTicketNumber = 2;
+
+    final controller = WaitlistController(repository);
+    await controller.load();
+
+    expect(await controller.addParty(name: 'New', partySize: 2), isTrue);
+    expect(controller.entries.map((e) => e.ticketNumber), [4, 5]);
+    expect(repository.nextTicketNumber, 6);
   });
 
   test('does not publish a party when persistence fails', () async {
