@@ -13,7 +13,12 @@ class WaitlistPage extends StatelessWidget {
       animation: controller,
       builder: (context, _) {
         if (controller.isLoading) return const Center(child: CircularProgressIndicator());
-        if (controller.entries.isEmpty) return _EmptyState(errorMessage: controller.errorMessage);
+        if (controller.entries.isEmpty) {
+          return _EmptyState(
+            errorMessage: controller.errorMessage,
+            onRetry: controller.errorMessage == null ? null : controller.load,
+          );
+        }
         return Column(children: [
           if (controller.errorMessage != null) MaterialBanner(
             content: Text(controller.errorMessage!),
@@ -33,7 +38,9 @@ class WaitlistPage extends StatelessWidget {
       },
     ),
     floatingActionButton: FloatingActionButton.extended(
-      onPressed: () => _showAddPartyDialog(context),
+      onPressed: controller.isLoading || controller.errorMessage != null
+          ? null
+          : () => _showAddPartyDialog(context),
       icon: const Icon(Icons.person_add), label: const Text('Add party'),
     ),
   );
