@@ -36,7 +36,9 @@ class WaitlistController extends ChangeNotifier {
         await _repository.save(_entries, _nextTicketNumber);
       }
     } catch (_) {
-      _errorMessage = 'Could not load the waitlist.';
+      _entries = const [];
+      _nextTicketNumber = 1;
+      _errorMessage = 'Could not load the saved waitlist. Please retry.';
     } finally {
       _isLoading = false;
       notifyListeners();
