@@ -9,8 +9,6 @@ class WaitlistEntry {
   final String name;
   final int partySize;
 
-  int partiesAheadOf(int index) => index;
-
   Map<String, Object> toJson() => {
         'ticketNumber': ticketNumber,
         'name': name,
