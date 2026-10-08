@@ -47,7 +47,10 @@ class SharedPreferencesWaitlistRepository implements WaitlistRepository {
     }
 
     if (entries.any(
-      (entry) => entry.partySize <= 0 || entry.name.trim().isEmpty,
+      (entry) =>
+          entry.ticketNumber < 1 ||
+          entry.partySize <= 0 ||
+          entry.name.trim().isEmpty,
     )) {
       throw const FormatException('Invalid waitlist entry in storage.');
     }
