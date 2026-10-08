@@ -41,9 +41,9 @@ class SharedPreferencesWaitlistRepository implements WaitlistRepository {
 
       return entries;
     } on FormatException {
-      return [];
+      rethrow;
     } on TypeError {
-      return [];
+      throw const FormatException('Invalid persisted waitlist data.');
     }
   }
 
