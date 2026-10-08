@@ -46,9 +46,9 @@ class FakeWaitlistRepository implements WaitlistRepository {
       'Another party',
     ]);
 
-    for (var index = 0; index < controller.entries.length; index++) {
-      expect(index, index);
-    }
+    expect(controller.entries[0].partiesAheadOf(0), 0);
+    expect(controller.entries[1].partiesAheadOf(1), 1);
+    expect(controller.entries[2].partiesAheadOf(2), 2);
   });
 }
 
