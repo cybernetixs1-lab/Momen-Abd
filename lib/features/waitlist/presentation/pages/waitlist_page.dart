@@ -81,7 +81,38 @@ class WaitlistPage extends StatelessWidget {
         ],
       ),
     );
-    if (shouldRemove == true) await controller.removeParty(entry.ticketNumber);
+    if (shouldRemove != true) return;
+
+    final removed = await controller.removeParty(entry.ticketNumber);
+    if (!context.mounted) return;
+
+    if (removed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${entry.name} removed from the waitlist.'),
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'Undo',
+            onPressed: () async {
+              final restored = await controller.undoLastRemoval();
+              if (!restored && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      controller.errorMessage ?? 'Could not restore the party.',
+                    ),
+                  ),
+                );
+              }
+            },
+          ),
+        ),
+      );
+    } else if (controller.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(controller.errorMessage!)),
+      );
+    }
   }
 }
 

@@ -9,6 +9,7 @@ class FakeWaitlistRepository implements WaitlistRepository {
   List<WaitlistEntry> entries = [];
   int nextTicketNumber = 1;
   Completer<void>? saveGate;
+  bool failSaves = false;
 
   @override
   Future<List<WaitlistEntry>> loadEntries() async => List.of(entries);
@@ -22,6 +23,7 @@ class FakeWaitlistRepository implements WaitlistRepository {
     int nextTicketNumber,
   ) async {
     await saveGate?.future;
+    if (failSaves) throw StateError('storage unavailable');
     this.entries = List.of(entries);
     this.nextTicketNumber = nextTicketNumber;
   }
@@ -205,6 +207,61 @@ void main() {
     expect(await controller.removeParty(3), isTrue);
     expect(await controller.removeParty(4), isTrue);
     expect(controller.entries.map((entry) => entry.ticketNumber), [2]);
+    expect(repository.entries.map((entry) => entry.ticketNumber), [2]);
+  });
+
+  test('undo restores a removed party at its position with its ticket',
+      () async {
+    final repository = FakeWaitlistRepository();
+    final controller = WaitlistController(repository);
+    await controller.load();
+    await controller.addParty(name: 'Alice', partySize: 2);
+    await controller.addParty(name: 'Bob', partySize: 3);
+    await controller.addParty(name: 'Cara', partySize: 4);
+
+    expect(await controller.removeParty(2), isTrue);
+    expect(await controller.undoLastRemoval(), isTrue);
+    expect(controller.entries.map((entry) => entry.ticketNumber), [1, 2, 3]);
+    expect(controller.entries.map((entry) => entry.name), [
+      'Alice',
+      'Bob',
+      'Cara',
+    ]);
+    expect(repository.nextTicketNumber, 4);
+  });
+
+  test('undo after another add restores at the nearest valid original index',
+      () async {
+    final repository = FakeWaitlistRepository();
+    final controller = WaitlistController(repository);
+    await controller.load();
+    await controller.addParty(name: 'Alice', partySize: 2);
+    await controller.addParty(name: 'Bob', partySize: 3);
+
+    expect(await controller.removeParty(1), isTrue);
+    expect(await controller.addParty(name: 'Cara', partySize: 4), isTrue);
+    expect(await controller.undoLastRemoval(), isTrue);
+    expect(controller.entries.map((entry) => entry.ticketNumber), [1, 2, 3]);
+    expect(controller.entries.map((entry) => entry.name), [
+      'Alice',
+      'Bob',
+      'Cara',
+    ]);
+  });
+
+  test('failed undo persistence leaves the queue unchanged and reports error',
+      () async {
+    final repository = FakeWaitlistRepository();
+    final controller = WaitlistController(repository);
+    await controller.load();
+    await controller.addParty(name: 'Alice', partySize: 2);
+    await controller.addParty(name: 'Bob', partySize: 3);
+    await controller.removeParty(1);
+    repository.failSaves = true;
+
+    expect(await controller.undoLastRemoval(), isFalse);
+    expect(controller.entries.map((entry) => entry.ticketNumber), [2]);
+    expect(controller.errorMessage, 'Could not restore the party.');
     expect(repository.entries.map((entry) => entry.ticketNumber), [2]);
   });
 }
