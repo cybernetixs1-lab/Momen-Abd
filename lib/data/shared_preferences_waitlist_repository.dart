@@ -20,13 +20,26 @@ class SharedPreferencesWaitlistRepository implements WaitlistRepository {
 
     try {
       final decoded = jsonDecode(raw);
-      if (decoded is! List) return [];
+      if (decoded is! List) {
+        throw const FormatException('Invalid persisted waitlist data.');
+      }
 
-      return decoded
-          .map((item) => WaitlistEntry.fromJson(
-                Map<String, dynamic>.from(item as Map),
-              ))
-          .toList(growable: false);
+      final entries = decoded.map((item) {
+        if (item is! Map) {
+          throw const FormatException('Invalid persisted waitlist entry.');
+        }
+        return WaitlistEntry.fromJson(Map<String, dynamic>.from(item));
+      }).toList(growable: false);
+
+      final tickets = entries.map((entry) => entry.ticketNumber).toSet();
+      if (tickets.length != entries.length) {
+        throw const FormatException('Duplicate ticket number in storage.');
+      }
+      if (entries.any((entry) => entry.partySize <= 0 || entry.name.trim().isEmpty)) {
+        throw const FormatException('Invalid waitlist entry in storage.');
+      }
+
+      return entries;
     } on FormatException {
       return [];
     } on TypeError {
