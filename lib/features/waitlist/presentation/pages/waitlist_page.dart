@@ -15,14 +15,43 @@ class WaitlistPage extends StatelessWidget {
           final count = controller.entries.length;
           return Scaffold(
             resizeToAvoidBottomInset: true,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             appBar: AppBar(
-              title: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              surfaceTintColor: Colors.transparent,
+              toolbarHeight: 76,
+              title: Row(
                 children: [
-                  const Text('Waitlist'),
-                  Text(
-                    '$count ${count == 1 ? 'party' : 'parties'} waiting',
-                    style: Theme.of(context).textTheme.bodySmall,
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      Icons.restaurant,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('Waitlist'),
+                        Text(
+                          '$count ${count == 1 ? 'party' : 'parties'} waiting',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -32,12 +61,25 @@ class WaitlistPage extends StatelessWidget {
                 builder: (context, constraints) => Column(
                   children: [
                     Expanded(child: _buildQueue(context)),
-                    ConstrainedBox(
+                    Container(
                       constraints: BoxConstraints(
-                        maxHeight: constraints.maxHeight * 0.58,
+                        maxHeight: constraints.maxHeight * 0.62,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(24),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 18,
+                            offset: const Offset(0, -5),
+                          ),
+                        ],
                       ),
                       child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                        padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
                         child: _AddPartyForm(
                           controller: controller,
                           isEnabled: !controller.isLoading &&
@@ -68,15 +110,33 @@ class WaitlistPage extends StatelessWidget {
 
     return ListView.separated(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      padding: const EdgeInsets.all(16),
-      itemCount: controller.entries.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+      itemCount: controller.entries.length + 1,
+      separatorBuilder: (_, index) => SizedBox(height: index == 0 ? 12 : 8),
       itemBuilder: (context, index) {
-        final entry = controller.entries[index];
+        if (index == 0) {
+          return Padding(
+            padding: const EdgeInsets.only(left: 4),
+            child: Row(
+              children: [
+                Text(
+                  'WAITING PARTIES',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        letterSpacing: 1.1,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ],
+            ),
+          );
+        }
+        final entryIndex = index - 1;
+        final entry = controller.entries[entryIndex];
         return _PartyTile(
           entry: entry,
-          partiesAhead: index,
-          isNext: index == 0,
+          partiesAhead: entryIndex,
+          isNext: entryIndex == 0,
           isEnabled: !controller.isMutating,
           onRemove: () => _removeParty(context, entry),
         );
@@ -152,6 +212,35 @@ class _AddPartyFormState extends State<_AddPartyForm> {
   Widget build(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Add a party',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Give them a ticket and find their place in line.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Icons.confirmation_number_outlined,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           TextField(
             controller: _nameController,
             focusNode: _nameFocus,
@@ -161,6 +250,7 @@ class _AddPartyFormState extends State<_AddPartyForm> {
             decoration: InputDecoration(
               labelText: 'Party name',
               errorText: _nameError,
+              prefixIcon: const Icon(Icons.person_outline),
             ),
             onChanged: (value) {
               if (_nameError != null) {
@@ -180,6 +270,7 @@ class _AddPartyFormState extends State<_AddPartyForm> {
             decoration: InputDecoration(
               labelText: 'Party size',
               errorText: _sizeError,
+              prefixIcon: const Icon(Icons.groups_outlined),
             ),
             onChanged: (value) {
               if (_sizeError != null) {
@@ -192,13 +283,10 @@ class _AddPartyFormState extends State<_AddPartyForm> {
             onSubmitted: (_) => _submit(),
           ),
           const SizedBox(height: 10),
-          SizedBox(
-            height: 48,
-            child: FilledButton.icon(
-              onPressed: widget.isEnabled ? _submit : null,
-              icon: const Icon(Icons.person_add_alt_1),
-              label: const Text('Add'),
-            ),
+          FilledButton.icon(
+            onPressed: widget.isEnabled ? _submit : null,
+            icon: const Icon(Icons.person_add_alt_1),
+            label: const Text('Add to waitlist'),
           ),
         ],
       );
@@ -259,7 +347,17 @@ class _PartyTile extends StatelessWidget {
           label: 'Ticket number ${entry.ticketNumber}',
           excludeSemantics: true,
           child: CircleAvatar(
-            child: Text('#${entry.ticketNumber}'),
+            backgroundColor:
+                isNext ? colors.primary : colors.surfaceContainerHighest,
+            foregroundColor:
+                isNext ? colors.onPrimary : colors.onSurfaceVariant,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                '#${entry.ticketNumber}',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
           ),
         ),
         title: Text(

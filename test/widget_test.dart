@@ -42,7 +42,7 @@ void main() {
 
     expect(find.text('No parties waiting'), findsOneWidget);
     expect(find.text('Add a party to start the queue.'), findsOneWidget);
-    expect(find.byIcon(Icons.groups_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.groups_outlined), findsWidgets);
 
     controller.dispose();
   });
@@ -54,7 +54,7 @@ void main() {
 
     await tester.enterText(find.byType(TextField).at(0), 'Alice');
     await tester.enterText(find.byType(TextField).at(1), '2');
-    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Add to waitlist'));
     await tester.pumpAndSettle();
 
     expect(
@@ -65,7 +65,7 @@ void main() {
 
     await tester.enterText(find.byType(TextField).at(0), 'Bob');
     await tester.enterText(find.byType(TextField).at(1), '3');
-    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Add to waitlist'));
     await tester.pumpAndSettle();
 
     expect(
@@ -81,7 +81,7 @@ void main() {
   testWidgets('empty-name validation is shown inline', (tester) async {
     final controller = await _pumpWaitlist(tester);
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Add to waitlist'));
     await tester.pump();
 
     expect(find.text('Name is required.'), findsOneWidget);
@@ -101,7 +101,8 @@ void main() {
     expect(find.text('Could not load the saved waitlist.'), findsOneWidget);
     expect(
       tester
-          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Add'))
+          .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Add to waitlist'))
           .onPressed,
       isNull,
     );
@@ -113,7 +114,8 @@ void main() {
     expect(controller.errorMessage, isNull);
     expect(
       tester
-          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Add'))
+          .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Add to waitlist'))
           .onPressed,
       isNotNull,
     );
@@ -128,7 +130,7 @@ void main() {
     await tester.pumpWidget(RestaurantWaitlistApp(controller: controller));
 
     await tester.enterText(find.byType(TextField).at(0), 'Alice');
-    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Add to waitlist'));
     await tester.pumpAndSettle();
 
     expect(controller.entries, isEmpty);
@@ -139,7 +141,7 @@ void main() {
   testWidgets('removal snackbar undo restores the party', (tester) async {
     final controller = await _pumpWaitlist(tester);
     await tester.enterText(find.byType(TextField).at(0), 'Alice');
-    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Add to waitlist'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Remove Alice'));
     await tester.pumpAndSettle();
@@ -171,7 +173,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(tester.takeException(), isNull);
+    final layoutException = tester.takeException();
+    expect(layoutException, isNull);
     expect(find.text('Waitlist'), findsOneWidget);
     expect(find.byType(FilledButton), findsOneWidget);
 
