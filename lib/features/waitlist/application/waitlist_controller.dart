@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
-import '../domain/waitlist_entry.dart';
-import '../domain/waitlist_repository.dart';
+import '../domain/entities/waitlist_entry.dart';
+import '../domain/repositories/waitlist_repository.dart';
 
 class WaitlistController extends ChangeNotifier {
   WaitlistController(this._repository);

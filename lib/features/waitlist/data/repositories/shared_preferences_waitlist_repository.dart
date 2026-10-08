@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../domain/waitlist_entry.dart';
-import '../../domain/waitlist_repository.dart';
+import '../../domain/entities/waitlist_entry.dart';
+import '../../domain/repositories/waitlist_repository.dart';
 
 class SharedPreferencesWaitlistRepository implements WaitlistRepository {
   SharedPreferencesWaitlistRepository(this._preferences);
