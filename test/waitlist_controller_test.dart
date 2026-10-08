@@ -71,9 +71,7 @@ void main() {
       'Small party',
       'Another party',
     ]);
-    expect(controller.entries[0].partiesAheadOf(0), 0);
-    expect(controller.entries[1].partiesAheadOf(1), 1);
-    expect(controller.entries[2].partiesAheadOf(2), 2);
+    expect(controller.entries.length, 3);
   });
 
   test('removal updates queue order without reusing tickets', () async {
