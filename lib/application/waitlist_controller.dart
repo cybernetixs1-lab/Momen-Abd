@@ -14,7 +14,6 @@ class WaitlistController extends ChangeNotifier {
   String? _errorMessage;
 
   List<WaitlistEntry> get entries => List.unmodifiable(_entries);
-  bool get hasEntries => _entries.isNotEmpty;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
