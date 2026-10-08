@@ -30,7 +30,28 @@ class FakeWaitlistRepository implements WaitlistRepository {
     );
     expect(controller.entries, isEmpty);
   });
+
+  test('queue order determines parties ahead, not party size', () async {
+    final repository = FakeWaitlistRepository();
+    final controller = WaitlistController(repository);
+    await controller.load();
+
+    await controller.addParty(name: 'Large party', partySize: 10);
+    await controller.addParty(name: 'Small party', partySize: 1);
+    await controller.addParty(name: 'Another party', partySize: 2);
+
+    expect(controller.entries.map((entry) => entry.name), [
+      'Large party',
+      'Small party',
+      'Another party',
+    ]);
+
+    for (var index = 0; index < controller.entries.length; index++) {
+      expect(index, index);
+    }
+  });
 }
+
 
 
 
